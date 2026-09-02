@@ -6,7 +6,7 @@ import (
 	"iter"
 )
 
-// Splitter splits an [io.Reader] into multiple [io.ReadCloser] chunks.
+// Splitter splits an [io.Reader] into multiple [io.ReadCloser] parts.
 // Part size and other parameters depend on specific implementation.
 // Check [readersplitter] package for a simple reference implementation.
 type Splitter interface {

@@ -14,6 +14,8 @@ type readersplitter struct {
 	partSize uint64
 }
 
+// New returns a base Splitter that works with an [io.Reader]
+// partSize of 0 means no bound
 func New(partSize uint64) splitter.Splitter {
 	return &readersplitter{partSize}
 }
@@ -34,7 +36,12 @@ func (r *readersplitter) Split(ctx context.Context, reader io.Reader) iter.Seq2[
 			errCh := make(chan error, 1)
 
 			go func() {
-				_, err := io.CopyN(in, sreader, int64(r.partSize))
+				var err error
+				if r.partSize == 0 {
+					_, err = io.Copy(in, sreader)
+				} else {
+					_, err = io.CopyN(in, sreader, int64(r.partSize))
+				}
 				errCh <- errors.Join(err, in.CloseWithError(err))
 			}()
 
