@@ -8,7 +8,6 @@ import (
 	"iter"
 
 	"github.com/byte-split-spec/go/pkg/splitter"
-	readerutils "github.com/debdutdeb/gopark/stdutils/reader"
 )
 
 type readersplitter struct {
@@ -23,7 +22,12 @@ func New(partSize uint64) splitter.Splitter {
 
 func (r *readersplitter) Split(ctx context.Context, reader io.Reader) iter.Seq2[io.ReadCloser, error] {
 	return func(yield func(io.ReadCloser, error) bool) {
-		sreader := bufio.NewReader(readerutils.WrapReaderInContext(reader, ctx))
+		// NOTE(self): removing WrapReaderInContext; no point.
+		// underlying reader's Read impl should rather handle context correctly.
+		// If ctx == reader's underlying ctx, any Read attempt here will fail with some Context.+ error
+		// if ctx != reader's underlying ctx, that's fine too; handle separately.
+		// Either way, WrapReaderInContext was mostly hiding source of bug more than anything IMO.
+		bufreader := bufio.NewReader(reader)
 		for {
 			select {
 			case <-ctx.Done():
@@ -36,7 +40,7 @@ func (r *readersplitter) Split(ctx context.Context, reader io.Reader) iter.Seq2[
 			// nothing left to split, so we don't hand out a trailing empty part
 			// (whether the source is empty from the start, or partSize evenly
 			// divides it).
-			if _, err := sreader.Peek(1); err != nil {
+			if _, err := bufreader.Peek(1); err != nil {
 				if errors.Is(err, io.EOF) {
 					return
 				}
@@ -51,11 +55,12 @@ func (r *readersplitter) Split(ctx context.Context, reader io.Reader) iter.Seq2[
 			go func() {
 				var err error
 				if r.partSize == 0 {
-					_, err = io.Copy(in, sreader)
+					_, err = io.Copy(in, bufreader)
 				} else {
-					_, err = io.CopyN(in, sreader, int64(r.partSize))
+					_, err = io.CopyN(in, bufreader, int64(r.partSize))
 				}
-				errCh <- errors.Join(err, in.CloseWithError(err))
+				// NOTE(self): if out is read from later, should return the same error as here when a copy was attempted;
+				errCh <- errors.Join(err, in.CloseWithError(err)) // this overall could simply be nil; let Join handle that
 			}()
 
 			if !yield(out, nil) {
@@ -65,16 +70,21 @@ func (r *readersplitter) Split(ctx context.Context, reader io.Reader) iter.Seq2[
 				return
 			}
 
+			// if Copy succeeded, get to the next part
 			err := <-errCh
 			if err == nil {
 				continue
 			}
 
-			// TODO: maybe more?
+			// finished;
 			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 				return
 			}
 
+			// any other error; effectively 
+			// `out` is yielded anyway; we have two ways an error could get to the caller
+			// 1. Copy fails, subsequent out.Read() fails with the error from Copy (or pipe internal error that doesn't get overwritten)
+			// 2. we reach this code, so somehow out.Read() did not happen, next iteration returned the error instead
 			yield(nil, err)
 			return
 		}
