@@ -104,6 +104,12 @@ func (r *ReaderSplitter) Split(ctx context.Context, reader io.Reader) iter.Seq2[
 					// each part receives its own EOF end.
 					if err == nil {
 						inerr = io.EOF
+					} else if !errors.Is(err, io.EOF) {
+						// A short final part is CopyN's ordinary io.EOF. Anything
+						// else is a real failure, and closing the pipe with a nil
+						// error would hand the caller a truncated part that looks
+						// cleanly terminated.
+						inerr = err
 					}
 				}
 				// NOTE(self): if out is read from later, should return the same error as here when a copy was attempted;

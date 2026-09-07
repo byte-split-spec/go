@@ -1,2 +1,8 @@
 github.com/debdutdeb/gopark/stdutils v0.0.0-20260902094345-3d0f6df9dd2a h1:nxwEtbiEgTwxIeqrMNq8/ICXoqc/CtfybQqAJ4+T8DE=
 github.com/debdutdeb/gopark/stdutils v0.0.0-20260902094345-3d0f6df9dd2a/go.mod h1:odXJSH54ETBFvC2K5Yd+Mv5M36GKSrpJUPG6BZxrZBc=
+github.com/debdutdeb/gopark/stdutils v0.0.0-20260903061643-17561889a8e6 h1:+VjlPzFuFL476PkgbegOk4An2tmJ+DXcUIxbjSXOR80=
+github.com/debdutdeb/gopark/stdutils v0.0.0-20260903061643-17561889a8e6/go.mod h1:odXJSH54ETBFvC2K5Yd+Mv5M36GKSrpJUPG6BZxrZBc=
+github.com/debdutdeb/gopark/stdutils v0.0.0-20260905182532-14171955085e h1:zsp1bb+D/k2rfD+5eRwtD6CTVO7powuJ25qEcRpu4kM=
+github.com/debdutdeb/gopark/stdutils v0.0.0-20260905182532-14171955085e/go.mod h1:odXJSH54ETBFvC2K5Yd+Mv5M36GKSrpJUPG6BZxrZBc=
+github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
+github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
