@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	h "hash"
 	"io"
+	"strconv"
 	"sync"
 
 	"github.com/debdutdeb/gopark/stdutils/reader"
@@ -295,7 +296,7 @@ func (m *ManifestBuilder) Pipe(r io.Reader) io.Reader {
 	return io.TeeReader(p, m.h)
 }
 
-type summer interface { Sum(p []byte) []byte }
+type summer interface{ Sum(p []byte) []byte }
 
 func hash(r summer) string {
 	return hex.EncodeToString(r.Sum(nil))
@@ -326,7 +327,7 @@ func Build[T any](builder *ManifestBuilder) (*ManifestBase[T], error) {
 	for id, p := range builder.parts {
 		byteCount := p.ByteCount()
 		m.Parts[id] = Part{
-			ID:       id,
+			ID:       strconv.Itoa(id),
 			Size:     NewSize(uint64(byteCount)),
 			Checksum: NewSha256Checksum(hash(p)),
 		}

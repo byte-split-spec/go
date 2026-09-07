@@ -1,5 +1,10 @@
 package manifest
 
+import (
+	"encoding/json"
+	"io"
+)
+
 type ManifestVersion string
 
 const (
@@ -45,7 +50,7 @@ type Manifest ManifestBase[map[string]any]
 
 // Part represents each part of the underlying byte stream.
 type Part struct {
-	ID       int      `json:"id"`
+	ID       string   `json:"id"`
 	Size     Size     `json:"size"`
 	Checksum Checksum `json:"checksum"`
 }
@@ -66,4 +71,14 @@ type Checksum struct {
 type Size struct {
 	Bytes uint64 `json:"bytes"`
 	Human string `json:"human"`
+}
+
+func LoadBase[Attr any](r io.Reader) (*ManifestBase[Attr], error) {
+	m := ManifestBase[Attr]{}
+	return &m, json.NewDecoder(r).Decode(&m)
+}
+
+func Load(r io.Reader) (*Manifest, error) {
+	m, err := LoadBase[map[string]any](r)
+	return (*Manifest)(m), err
 }
