@@ -1,5 +1,17 @@
 package manifest
 
+type ManifestVersion string
+
+const (
+	V1 ManifestVersion = "1"
+)
+
+type ChecksumAlgorithm string
+
+const (
+	Sha256 ChecksumAlgorithm = "sha256"
+)
+
 // ManifestBase is the generic version of a Manifest with attributes.
 //
 // Use [Manifest] type instead for most cases.
@@ -19,12 +31,11 @@ package manifest
 //
 // Most cases should be enough to use [Manifest] type with [map[string]string].
 type ManifestBase[T any] struct {
-	Version  string   `json:"version"`
-	Name     string   `json:"name"`
-	Size     Size     `json:"size"`
-	Checksum Checksum `json:"checksum"`
-	PartSize Size     `json:"partSize"`
-	Parts    []Part   `json:"parts,omitempty"`
+	Version  ManifestVersion `json:"version"`
+	Size     Size            `json:"size"`
+	Checksum Checksum        `json:"checksum"`
+	PartSize Size            `json:"partSize"`
+	Parts    []Part          `json:"parts,omitempty"`
 
 	Attributes T `json:"attributes,omitempty"`
 }
@@ -35,15 +46,20 @@ type Manifest ManifestBase[map[string]any]
 // Part represents each part of the underlying byte stream.
 type Part struct {
 	ID       int      `json:"id"`
-	Basename string   `json:"basename"`
 	Size     Size     `json:"size"`
 	Checksum Checksum `json:"checksum"`
 }
 
 // Checksum documents the algorithm used in hashing the bytes and the value of the hash itself.
+//
+// [ManifestBase.Checksum] is the checksum over the whole input, in original
+// order. It is only meaningful when the manifest was built from parts
+// drained sequentially; see [ManifestBuilder] for why concurrently-drained
+// parts, such as those from Split2, make this field unreliable and how to
+// still use [Part.Checksum] and [Part.ID] in that case.
 type Checksum struct {
-	Algorithm string `json:"algorithm"`
-	Value     string `json:"value"`
+	Algorithm ChecksumAlgorithm `json:"algorithm"`
+	Value     string            `json:"value"`
 }
 
 // Size represents both the raw byte count and a human readable string.
