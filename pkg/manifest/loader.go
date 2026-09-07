@@ -36,6 +36,8 @@ func (m *ManifestLoader[Attr]) Load(ctx context.Context, s store.Store) io.Reade
 		if err != nil && !errors.Is(err, io.EOF) {
 			in.CloseWithError(err)
 		}
+		_ = r
+
 	}
 	return out
 }

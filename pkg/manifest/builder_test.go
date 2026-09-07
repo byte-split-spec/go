@@ -6,10 +6,12 @@ import (
 	"encoding/hex"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/debdutdeb/gopark/collections/sets"
 	"github.com/dustin/go-humanize"
 )
 
@@ -70,8 +72,8 @@ func TestBuilder_Pipe_SinglePart(t *testing.T) {
 		t.Fatalf("len(Parts) = %d, want 1", len(m.Parts))
 	}
 	p := m.Parts[0]
-	if p.ID != 0 {
-		t.Errorf("Part.ID = %d, want 0", p.ID)
+	if p.ID != "0" {
+		t.Errorf("Part.ID = %s, want 0", p.ID)
 	}
 	if p.Size.Bytes != uint64(len(data)) {
 		t.Errorf("Part.Size.Bytes = %d, want %d", p.Size.Bytes, len(data))
@@ -125,8 +127,8 @@ func TestBuilder_Pipe_MultiplePartsInOrder(t *testing.T) {
 	totalSize := 0
 	for i, data := range inputs {
 		p := m.Parts[i]
-		if p.ID != i {
-			t.Errorf("Parts[%d].ID = %d, want %d", i, p.ID, i)
+		if p.ID != strconv.Itoa(i) {
+			t.Errorf("Parts[%d].ID = %s, want %d", i, p.ID, i)
 		}
 		if p.Size.Bytes != uint64(len(data)) {
 			t.Errorf("Parts[%d].Size.Bytes = %d, want %d", i, p.Size.Bytes, len(data))
@@ -176,8 +178,8 @@ func TestBuilder_Pipe_IDsFollowCallOrderEvenUnread(t *testing.T) {
 		t.Fatalf("len(Parts) = %d, want 3", len(m.Parts))
 	}
 	for i, p := range m.Parts {
-		if p.ID != i {
-			t.Errorf("Parts[%d].ID = %d, want %d", i, p.ID, i)
+		if p.ID != strconv.Itoa(i) {
+			t.Errorf("Parts[%d].ID = %s, want %d", i, p.ID, i)
 		}
 		if p.Size.Bytes != 0 {
 			t.Errorf("Parts[%d].Size.Bytes = %d, want 0 (unread)", i, p.Size.Bytes)
@@ -344,26 +346,26 @@ func TestBuilder_Pipe_ConcurrentCallsRegisterAllParts(t *testing.T) {
 		t.Fatalf("len(Parts) = %d, want %d", len(m.Parts), n)
 	}
 
-	seenIDs := make(map[int]bool, n)
-	seenSizes := make(map[uint64]bool, n)
+	seenIDs := sets.New[string]()
+	seenSizes := sets.New[uint64]()
 	for _, p := range m.Parts {
-		if seenIDs[p.ID] {
-			t.Errorf("duplicate Part.ID %d", p.ID)
+		if sets.Has(seenIDs, p.ID) {
+			t.Errorf("duplicate Part.ID %s", p.ID)
 		}
-		seenIDs[p.ID] = true
+		sets.Add(seenIDs, p.ID)
 
 		if p.Size.Bytes < 1 || p.Size.Bytes > n {
-			t.Errorf("Part %d Size.Bytes = %d, out of expected range [1,%d]", p.ID, p.Size.Bytes, n)
+			t.Errorf("Part %s Size.Bytes = %d, out of expected range [1,%d]", p.ID, p.Size.Bytes, n)
 			continue
 		}
-		if seenSizes[p.Size.Bytes] {
+		if sets.Has(seenSizes, p.Size.Bytes) {
 			t.Errorf("duplicate part size %d; each goroutine used a distinct length", p.Size.Bytes)
 		}
-		seenSizes[p.Size.Bytes] = true
+		sets.Add(seenSizes, p.Size.Bytes)
 
 		want := sha256Hex(bytes.Repeat([]byte("x"), int(p.Size.Bytes)))
 		if p.Checksum.Value != want {
-			t.Errorf("Part %d Checksum.Value = %q, want %q", p.ID, p.Checksum.Value, want)
+			t.Errorf("Part %s Checksum.Value = %q, want %q", p.ID, p.Checksum.Value, want)
 		}
 	}
 
