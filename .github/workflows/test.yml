@@ -26,4 +26,4 @@ jobs:
         run: go vet ./...
 
       - name: Test
-        run: go test ./... -race -cover
+        run: go test ./... -race -cover -count=20
