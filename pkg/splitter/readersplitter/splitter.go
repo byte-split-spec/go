@@ -9,6 +9,7 @@ import (
 	"iter"
 
 	"github.com/byte-split-spec/go/pkg/splitter"
+	gprkio "github.com/debdutdeb/gopark/stdutils/io"
 )
 
 // ReaderSplitter splits streams from an [io.Reader] into streams of parts.
@@ -177,7 +178,7 @@ func (r *ReaderSplitter) Split2(ctx context.Context, reader io.ReaderAt) iter.Se
 		errCh := make(chan error, 1)
 
 		sharedCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
+		// defer cancel()
 
 		var _peekBuffer [1]byte
 		// you might be wondering why this name,well, because, not kidding this is the exact word my brain thought of the moment i was writing this function.
@@ -249,36 +250,30 @@ func (r *ReaderSplitter) Split2(ctx context.Context, reader io.ReaderAt) iter.Se
 			}
 
 			go func() {
-				for {
-					/*
-						* docs:
-						// A successful Copy returns err == nil, not err == EOF.
-						// Because Copy is defined to read from src until EOF, it does
-						// not treat an EOF from Read as an error to be reported.
-					*/
-					// NOTE: breaking down in byte parts to stop copying earlier
-					n, err := io.CopyN(in, partReader, 1024) // TODO: move 1024 to constant
-					// Copy can still return EOF depending on partReader.Read()'s return
-					if err == nil {
-						if n < 1024 {
-							_ = in.CloseWithError(io.EOF)
-							return
-						}
-						continue
-					}
-					if errors.Is(err, io.EOF) {
-						_ = in.CloseWithError(io.EOF)
-						return
-					}
-					_ = in.CloseWithError(err)
-					select {
-					case errCh <- err:
-					case <-sharedCtx.Done():
-						// if parent ctx cancelled or ended or or cancel was called, nothing will be listening to errCh, no point in sending the Close err to that
-						_ = in.CloseWithError(sharedCtx.Err())
-						return
-					default:
-					}
+				/*
+					* docs:
+					// A successful Copy returns err == nil, not err == EOF.
+					// Because Copy is defined to read from src until EOF, it does
+					// not treat an EOF from Read as an error to be reported.
+				*/
+				_, err := gprkio.Copy(sharedCtx, in, partReader, 1024)
+
+				if err == nil || errors.Is(err, io.EOF) {
+					_ = in.CloseWithError(io.EOF)
+					return
+				}
+
+				_ = in.CloseWithError(err)
+
+				select {
+				case errCh <- err:
+					cancel()
+				case <-sharedCtx.Done():
+					_ = in.CloseWithError(sharedCtx.Err())
+					return
+				default:
+					// errCh is full;
+					cancel()
 				}
 			}()
 

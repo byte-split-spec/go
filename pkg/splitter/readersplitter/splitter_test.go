@@ -8,6 +8,7 @@ import (
 	"io"
 	"iter"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -760,4 +761,55 @@ func TestSplit2_UnboundedYieldsSingleFullPart(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	checkParts(t, parts, []string{string(data)}, string(data))
+}
+
+// a reader of 10 bytes
+type failAtSecondReadLargeBuffer struct{}
+
+func (r *failAtSecondReadLargeBuffer) ReadAt(p []byte, offset int64) (n int, err error) {
+	/// 0-2047
+	// 2048-4096
+	// third part boundary
+	if offset == 1024*4 {
+		return 0, io.EOF
+	}
+
+	// gopark.Copy uses 1024 chunks
+	if offset == 3072 {
+		return 0, fmt.Errorf("blocked")
+	}
+
+	// emulate every read taking some time
+	time.Sleep(time.Millisecond * 1)
+
+	// for the rest, do whatever
+	p[0] = strconv.Itoa(int(offset))[0]
+	return 1, nil
+}
+
+func Test_Split2OneProducerErrorCancelsTheOthers(t *testing.T) {
+	t.Parallel()
+
+	// using big partsize because gopark.Copy uses 1024 as the chunk size.
+	//pipe write will be blocked at first write and finish for first 1-24 before gets a chance to reach the context event.
+	// as Copy doc notes, gopark.Copy makes copy partially context aware. need to give it the chance to reach the right code.
+	sp := readersplitter.New(2048) // so peek doesn't cause immediate fail
+	parts := sp.Split2(t.Context(), &failAtSecondReadLargeBuffer{})
+	partsSlice := []io.ReadCloser{}
+
+	for p, err := range parts {
+		if err != nil {
+			t.Fatalf("failed to generate part: %q\n", err)
+		}
+		partsSlice = append(partsSlice, p)
+	}
+
+	time.Sleep(time.Millisecond * 100) // enough time with this plus the range before to exhaust Spli2 itself.
+
+	go io.ReadAll(partsSlice[1]) // this errors; need to make sure atttempting to read any other part also errors out with context cancelled
+
+	_, err := io.ReadAll(partsSlice[0])
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected %q got %q from reading out of a part while another part failed\n", context.Canceled, err)
+	}
 }
