@@ -1,0 +1,6 @@
+github.com/debdutdeb/gopark/collections v0.0.2 h1:uEiVlu/K83qybOiTUX7JFEcWRBOYdAA4N9jMF3Qn2EY=
+github.com/debdutdeb/gopark/collections v0.0.2/go.mod h1:JBqk0oWHGuVaDmfSfzStdVF2m4wtWjMirnrQi/d1EtU=
+github.com/debdutdeb/gopark/stdutils v0.0.0-20260908072257-0594d609d953 h1:O4WXMoNORMj3oJuqN1+87vw62tE9pAmiRGPpmr3i/8Q=
+github.com/debdutdeb/gopark/stdutils v0.0.0-20260908072257-0594d609d953/go.mod h1:odXJSH54ETBFvC2K5Yd+Mv5M36GKSrpJUPG6BZxrZBc=
+github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
+github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
