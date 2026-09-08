@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/debdutdeb/gopark/stdutils/reader"
+	gprkio "github.com/debdutdeb/gopark/stdutils/io"
 )
 
 // ManifestBuilder helps generate [Manifest] from bytes read.
@@ -248,15 +248,15 @@ func NewBuilder() ManifestBuilder {
 }
 
 type hashNer struct {
-	reader.ReadHasher
-	reader.ReadNer
+	gprkio.ReadHasher
+	gprkio.ReadNer
 }
 
 func newHashNer(r io.Reader) *hashNer {
-	ner := reader.Ner(r)
+	ner := gprkio.Ner(r)
 	return &hashNer{
 		ReadNer:    ner,
-		ReadHasher: reader.Sha256Hasher(ner),
+		ReadHasher: gprkio.Sha256Hasher(ner),
 	}
 }
 
